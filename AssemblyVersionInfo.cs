@@ -14,3 +14,5 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("5.3.0.0")]
 [assembly: AssemblyFileVersion("5.3.0.0")]
+[assembly: AssemblyInformationalVersion(GithubInfo.Sha)]
+

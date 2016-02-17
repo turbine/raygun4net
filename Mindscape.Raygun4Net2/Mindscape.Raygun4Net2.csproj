@@ -43,7 +43,6 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
@@ -105,6 +104,8 @@
     <Compile Include="..\Mindscape.Raygun4Net\SimpleJson.cs">
       <Link>SimpleJson.cs</Link>
     </Compile>
+    <Compile Include="Properties\AssemblyGithubSha.cs" />
+    <Compile Include="Properties\AssemblyGithubUrl.cs" />
     <Compile Include="Builders\RaygunEnvironmentMessageBuilder.cs" />
     <Compile Include="Builders\RaygunErrorMessageBuilder.cs" />
     <Compile Include="Builders\RaygunRequestMessageBuilder.cs" />
@@ -115,6 +116,31 @@
     <Compile Include="RaygunSettings.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>SETLOCAL
+SET MODIFICATIONS=0
+for /F %25%25i in ('git status --porcelain') DO @SET MODIFICATIONS=1
+
+if not exist $(ProjectDir)tmp mkdir $(ProjectDir)tmp
+
+for /F %25%25I in ('git rev-parse HEAD') DO SET SHA=%25%25I
+if %25MODIFICATIONS%25==1 (
+  set SHA=local changes on %25SHA%25
+) ELSE (
+  SET SHA=SHA: %25SHA%25
+)
+
+set DEST=$(ProjectDir)Properties\AssemblyGithubSha.cs
+echo public static partial class GithubInfo { public const string Sha = ^"%25SHA%25^"; } &gt; %25DEST%25
+echo Created %25DEST%25
+
+set DEST=$(ProjectDir)Properties\AssemblyGithubUrl.cs
+for /F "tokens=2" %25%25I in ('git remote -v') do set URL=%25%25I
+echo public static partial class GithubInfo { public const string RepoUrl = ^"%25URL%25^"; } &gt; %25DEST%25
+echo Created %25DEST%25
+
+ENDLOCAL</PreBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

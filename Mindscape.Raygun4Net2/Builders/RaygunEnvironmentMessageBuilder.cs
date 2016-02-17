@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.VisualBasic.Devices;
 using Mindscape.Raygun4Net.Messages;
 
 namespace Mindscape.Raygun4Net.Builders
@@ -58,16 +57,72 @@ namespace Mindscape.Raygun4Net.Builders
 
       try
       {
-        ComputerInfo info = new ComputerInfo();
-        message.TotalPhysicalMemory = (ulong)info.TotalPhysicalMemory / 0x100000; // in MB
-        message.AvailablePhysicalMemory = (ulong)info.AvailablePhysicalMemory / 0x100000;
-        message.TotalVirtualMemory = info.TotalVirtualMemory / 0x100000;
-        message.AvailableVirtualMemory = info.AvailableVirtualMemory / 0x100000;
         message.DiskSpaceFree = GetDiskSpace();
       }
       catch (Exception ex)
       {
-        System.Diagnostics.Debug.WriteLine(string.Format("Error retrieving memory info: {0}", ex.Message));
+        System.Diagnostics.Debug.WriteLine(string.Format("Error retrieving disk info: {0}", ex.Message));
+      }
+
+      // The WMI stuff isn't present in linux mono, and these values seem silly to me anyway
+      //try
+      //{
+      //  string Query = "SELECT TotalVisibleMemorySize, FreePhysicalMemory, MaxProcessMemorySize FROM Win32_OperatingSystem";
+      //  var searcher = new System.Management.ManagementObjectSearcher(Query);
+
+      //  message.TotalPhysicalMemory = 0;
+      //  message.AvailablePhysicalMemory = 0;
+      //  message.TotalVirtualMemory = 0;
+      //  foreach (ManagementObject WniPART in searcher.Get())
+      //  {
+      //    message.TotalPhysicalMemory += Convert.ToUInt64(WniPART.Properties["TotalVisibleMemorySize"].Value);
+      //    message.AvailablePhysicalMemory += Convert.ToUInt64(WniPART.Properties["FreePhysicalMemory"].Value);
+      //    message.TotalVirtualMemory += Convert.ToUInt64(WniPART.Properties["MaxProcessMemorySize"].Value);
+
+      //    // I can't find a query that returns this value for 32-bit apps. Since we don't know if /3GB is  
+      //    // on or not, so assume 2G for a 32bit exe on 32bit os and 4G for 32bit exe on 64bit OS
+      //    if (IntPtr.Size == 4)
+      //    {
+      //      if (message.TotalVirtualMemory > 4096 * 1024)
+      //        message.TotalVirtualMemory = 4096 * 1024;
+      //      else if (message.TotalVirtualMemory > 2047 * 1024)
+      //        message.TotalVirtualMemory = 2047 * 1024;
+      //    }
+      //  }
+      //}
+      //catch (Exception ex)
+      //{
+      //  System.Diagnostics.Debug.WriteLine(string.Format("Error retrieving os memory info: {0}", ex.Message));
+      //}
+
+      //if (message.TotalVirtualMemory > 0)
+      //{
+      //  try
+      //  {
+      //    var process = System.Diagnostics.Process.GetCurrentProcess();
+      //    message.AvailableVirtualMemory = message.TotalVirtualMemory - (ulong)(process.VirtualMemorySize64 / 1024);
+      //  }
+      //  catch (Exception ex)
+      //  {
+      //    System.Diagnostics.Debug.WriteLine(string.Format("Error retrieving os memory info: {0}", ex.Message));
+      //  }
+      //}
+
+      // In MB
+      //message.TotalPhysicalMemory /= 1024;
+      //message.AvailablePhysicalMemory /= 1024;
+      //message.TotalVirtualMemory /= 1024;
+      //message.AvailableVirtualMemory /= 1024;
+
+      try
+      {
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        message.TotalVirtualMemory = (ulong)(process.VirtualMemorySize64/(1024*1024));
+        message.TotalPhysicalMemory = (ulong)(process.PrivateMemorySize64/(1024*1024));
+      }
+      catch (Exception ex)
+      {
+        System.Diagnostics.Debug.WriteLine(string.Format("Error retrieving process memory info: {0}", ex.Message));
       }
 
       return message;
